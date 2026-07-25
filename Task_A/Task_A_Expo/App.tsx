@@ -128,9 +128,11 @@ export default function App() {
   const [newOrderModalVisible, setNewOrderModalVisible] = useState(false);
   const [newCustName, setNewCustName] = useState('');
   const [newCustEmail, setNewCustEmail] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
   const [newCustAddress, setNewCustAddress] = useState('');
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('199');
+  const [newPriority, setNewPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium');
 
   // Confirmation Modal for New Order
   const [confirmOrderModalVisible, setConfirmOrderModalVisible] = useState(false);
@@ -232,19 +234,41 @@ export default function App() {
       return;
     }
     const num = Math.floor(1000 + Math.random() * 9000);
-    const itemP = parseFloat(newItemPrice) || 99;
+    const baseItemPrice = parseFloat(newItemPrice) || 99;
+    
+    // Priority Surcharge Calculation
+    let priorityFee = 0;
+    let priorityNote = '';
+    if (newPriority === 'high') {
+      priorityFee = 50.00;
+      priorityNote = 'High Priority Express Dispatch Fee ($50.00)';
+    } else if (newPriority === 'urgent') {
+      priorityFee = 100.00;
+      priorityNote = 'Urgent 24H Guaranteed Express Dispatch Fee ($100.00)';
+    }
+
+    const initialItems: OrderItem[] = [
+      { name: newItemName.trim() || 'Standard Logistics Package', qty: 1, price: baseItemPrice }
+    ];
+
+    if (priorityFee > 0) {
+      initialItems.push({ name: priorityNote, qty: 1, price: priorityFee });
+    }
+
+    const totalCalculated = baseItemPrice + priorityFee;
+
     const draft: Order = {
       id: `${Date.now()}`,
       orderNumber: `ORD-2026-${num}`,
       customerName: newCustName.trim(),
       email: newCustEmail.trim() || 'client@express.com',
-      phone: '+1 (555) 900-1122',
+      phone: newCustPhone.trim() || '+1 (555) 900-1122',
       address: newCustAddress.trim() || 'Logistics Bay 4',
-      totalAmount: itemP,
+      totalAmount: totalCalculated,
       status: 'pending',
-      priority: 'high',
+      priority: newPriority,
       createdAt: 'Just Now',
-      items: [{ name: newItemName.trim() || 'Standard Logistics Package', qty: 1, price: itemP }]
+      items: initialItems
     };
 
     setPendingDraftOrder(draft);
@@ -266,11 +290,12 @@ export default function App() {
     // Clear Form Inputs
     setNewCustName('');
     setNewCustEmail('');
+    setNewCustPhone('');
     setNewCustAddress('');
     setNewItemName('');
 
     handleTabChange('list');
-    triggerCoolPopup('Order Confirmed!', `Order ${pendingDraftOrder.orderNumber} successfully added to the active orders list!`, '🎉 ORDER CREATED');
+    triggerCoolPopup('Order Confirmed!', `Order ${pendingDraftOrder.orderNumber} successfully added to active orders list!`, '🎉 ORDER CREATED');
   };
 
   // Add Item with Custom Name & Quantity
@@ -661,6 +686,14 @@ export default function App() {
             />
             <TextInput
               style={styles.formInput}
+              placeholder="Contact Number (e.g. +1 555-0199)"
+              placeholderTextColor="#64748b"
+              keyboardType="phone-pad"
+              value={newCustPhone}
+              onChangeText={setNewCustPhone}
+            />
+            <TextInput
+              style={styles.formInput}
               placeholder="Dispatch Address"
               placeholderTextColor="#64748b"
               value={newCustAddress}
@@ -673,14 +706,40 @@ export default function App() {
               value={newItemName}
               onChangeText={setNewItemName}
             />
-            <TextInput
-              style={styles.formInput}
-              placeholder="Price ($)"
-              placeholderTextColor="#64748b"
-              keyboardType="numeric"
-              value={newItemPrice}
-              onChangeText={setNewItemPrice}
-            />
+            <Text style={styles.inputLabelText}>Select Order Priority Level:</Text>
+            <View style={styles.prioritySelectorRow}>
+              {(['low', 'medium', 'high', 'urgent'] as const).map((pLevel) => (
+                <TouchableOpacity
+                  key={pLevel}
+                  activeOpacity={0.7}
+                  style={[
+                    styles.prioritySelectorBtn,
+                    newPriority === pLevel && styles.prioritySelectorBtnActive
+                  ]}
+                  onPress={() => setNewPriority(pLevel)}
+                >
+                  <Text
+                    style={[
+                      styles.prioritySelectorText,
+                      newPriority === pLevel && styles.prioritySelectorTextActive
+                    ]}
+                  >
+                    {pLevel.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {newPriority === 'high' && (
+              <Text style={styles.priorityChargeNoticeText}>
+                ⚡ High Priority selected: +$50.00 Express Handling Charge automatically added to subtotal.
+              </Text>
+            )}
+            {newPriority === 'urgent' && (
+              <Text style={styles.priorityChargeNoticeText}>
+                🔥 Urgent Priority selected: +$100.00 Guaranteed 24H Air Freight Fee automatically added to subtotal.
+              </Text>
+            )}
 
             <View style={styles.modalBtnRow}>
               <TouchableOpacity
@@ -700,7 +759,7 @@ export default function App() {
         </View>
       </Modal>
 
-      {/* CONFIRMATION POPUP MODAL */}
+      {/* CONFIRMATION WARNING POPUP MODAL */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -708,14 +767,14 @@ export default function App() {
         onRequestClose={() => setConfirmOrderModalVisible(false)}
       >
         <View style={styles.coolModalOverlay}>
-          <View style={styles.coolModalCard}>
-            <View style={styles.coolModalBadgeContainer}>
-              <Text style={styles.coolModalBadgeText}>⚠️ CONFIRM ORDER</Text>
+          <View style={styles.warningModalCard}>
+            <View style={styles.warningModalBadgeContainer}>
+              <Text style={styles.warningModalBadgeText}>⚠️ CONFIRM ORDER ACTION</Text>
             </View>
 
-            <Text style={styles.coolModalTitle}>Confirm Submission?</Text>
-            <Text style={styles.coolModalMessage}>
-              Create {pendingDraftOrder?.orderNumber} for {pendingDraftOrder?.customerName} (${pendingDraftOrder?.totalAmount.toFixed(2)})?
+            <Text style={styles.warningModalTitle}>Confirm Submission?</Text>
+            <Text style={styles.warningModalMessage}>
+              Create {pendingDraftOrder?.orderNumber} for {pendingDraftOrder?.customerName}? Total amount will be ${pendingDraftOrder?.totalAmount.toFixed(2)}.
             </Text>
 
             <View style={styles.modalBtnRow}>
@@ -726,10 +785,10 @@ export default function App() {
                 <Text style={styles.cancelModalBtnText}>Edit Details</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.submitModalBtn}
+                style={styles.confirmWarningBtn}
                 onPress={confirmNewOrderSubmission}
               >
-                <Text style={styles.submitModalBtnText}>Confirm & Add to List</Text>
+                <Text style={styles.confirmWarningBtnText}>Confirm & Add</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1294,6 +1353,47 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(99, 102, 241, 0.4)',
     gap: 12,
   },
+  inputLabelText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  prioritySelectorRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  prioritySelectorBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  prioritySelectorBtnActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#818cf8',
+  },
+  prioritySelectorText: {
+    color: '#64748b',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  prioritySelectorTextActive: {
+    color: '#fff',
+  },
+  priorityChargeNoticeText: {
+    color: '#fbbf24',
+    fontSize: 11,
+    fontWeight: '600',
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
   modalHeading: {
     color: '#fff',
     fontSize: 20,
@@ -1347,6 +1447,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
+  },
+  warningModalCard: {
+    width: '100%',
+    backgroundColor: '#1c1917',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#f59e0b',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  warningModalBadgeContainer: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.5)',
+  },
+  warningModalBadgeText: {
+    color: '#fbbf24',
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  warningModalTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  warningModalMessage: {
+    color: '#e7e5e4',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  confirmWarningBtn: {
+    flex: 1,
+    backgroundColor: '#f59e0b',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  confirmWarningBtnText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '900',
   },
   coolModalCard: {
     width: '100%',
