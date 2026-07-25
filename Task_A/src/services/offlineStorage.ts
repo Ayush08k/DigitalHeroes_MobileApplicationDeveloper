@@ -1,4 +1,4 @@
-import { Order, SyncMutation } from '../types/order';
+import type { Order, SyncMutation } from '../types/order';
 
 const STORAGE_KEYS = {
   ORDERS_CACHE: 'dh_task_a_orders_cache',

@@ -1,17 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   FileSearch,
-  CheckCircle2,
   AlertTriangle,
-  Flame,
   Gauge,
   GitBranch,
-  ShieldCheck,
   Zap,
-  ExternalLink,
-  Layers,
-  ArrowRight,
-  ChevronRight
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 export const Footer: React.FC = () => {
   return (

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { Order, OrderStatus, SyncMutation, ConflictResolutionPolicy } from '../types/order';
+import type { Order, OrderStatus, SyncMutation, ConflictResolutionPolicy } from '../types/order';
 import { mockApi } from '../services/mockApi';
 import { OfflineStorage } from '../services/offlineStorage';
 import { syncEngine } from '../services/syncEngine';

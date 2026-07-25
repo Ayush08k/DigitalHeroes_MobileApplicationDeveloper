@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOrders } from '../context/OrderContext';
-import { OrderStatus } from '../types/order';
-import { Sliders, CheckCircle2, AlertTriangle, ArrowRight, Zap, RefreshCw } from 'lucide-react';
+import type { OrderStatus } from '../types/order';
+import { Sliders, AlertTriangle, ArrowRight, Zap, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const ORDER_STEPS: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -12,8 +12,7 @@ export const StatusUpdateScreen: React.FC = () => {
     selectedOrder,
     setSelectedOrder,
     updateOrderStatusOptimistic,
-    isOnline,
-    setActiveScreen
+    isOnline
   } = useOrders();
 
   const [activeOrderId, setActiveOrderId] = useState<string>(selectedOrder?.id || orders[0]?.id || '');

@@ -1,6 +1,6 @@
 import { mockApi } from './mockApi';
 import { OfflineStorage } from './offlineStorage';
-import { SyncMutation, Order, ConflictResolutionPolicy } from '../types/order';
+import type { SyncMutation, Order, ConflictResolutionPolicy } from '../types/order';
 
 export interface SyncEngineResult {
   processedCount: number;

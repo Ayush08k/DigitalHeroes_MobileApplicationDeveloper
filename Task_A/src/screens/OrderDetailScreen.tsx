@@ -1,11 +1,11 @@
 import React from 'react';
 import { useOrders } from '../context/OrderContext';
-import { OrderStatus } from '../types/order';
-import { ArrowLeft, User, Phone, Mail, MapPin, Package, Clock, ShieldCheck, Zap } from 'lucide-react';
+import type { OrderStatus } from '../types/order';
+import { ArrowLeft, User, Phone, Mail, MapPin, Package, Clock, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const OrderDetailScreen: React.FC = () => {
-  const { selectedOrder, setActiveScreen, updateOrderStatusOptimistic } = useOrders();
+  const { selectedOrder, setActiveScreen } = useOrders();
 
   if (!selectedOrder) {
     return (

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOrders } from '../context/OrderContext';
-import { ConflictResolutionPolicy } from '../types/order';
-import { ShieldCheck, RefreshCw, Trash2, Database, Wifi, Sliders, AlertCircle, CheckCircle } from 'lucide-react';
+import type { ConflictResolutionPolicy } from '../types/order';
+import { ShieldCheck, RefreshCw, Trash2, Database, Wifi, Sliders, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export const SettingsScreen: React.FC = () => {

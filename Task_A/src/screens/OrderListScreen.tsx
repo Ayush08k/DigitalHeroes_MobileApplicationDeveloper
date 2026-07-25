@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOrders } from '../context/OrderContext';
-import { Order, OrderStatus } from '../types/order';
-import { Search, Filter, ArrowUpDown, ChevronRight, AlertCircle, Clock, ShoppingBag } from 'lucide-react';
+import type { OrderStatus } from '../types/order';
+import { Search, Filter, ArrowUpDown, ChevronRight, Clock, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const STATUS_OPTIONS: { label: string; value: OrderStatus | 'all' }[] = [
