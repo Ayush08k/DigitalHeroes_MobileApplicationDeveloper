@@ -111,18 +111,37 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(true);
   const [syncQueue, setSyncQueue] = useState<{ id: string; desc: string }[]>([]);
 
+  // User Profile State (Editable)
+  const [profileName, setProfileName] = useState('Digital Heroes Officer');
+  const [profileRole, setProfileRole] = useState('Lead Logistics Manager');
+  const [profileEmail, setProfileEmail] = useState('officer@digitalheroes.com');
+  const [profilePhone, setProfilePhone] = useState('+1 (555) 019-2834');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+
   // Cool Glass Modal Popup State
   const [coolModalVisible, setCoolModalVisible] = useState(false);
   const [coolModalTitle, setCoolModalTitle] = useState('');
   const [coolModalMessage, setCoolModalMessage] = useState('');
   const [coolModalBadge, setCoolModalBadge] = useState('✨ ACTION SUCCESS');
 
-  const triggerCoolPopup = (title: string, message: string, badge = '✨ ACTION SUCCESS') => {
-    setCoolModalTitle(title);
-    setCoolModalMessage(message);
-    setCoolModalBadge(badge);
-    setCoolModalVisible(true);
-  };
+  // Interactive Popup Modal 1: Add New Order Form
+  const [newOrderModalVisible, setNewOrderModalVisible] = useState(false);
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustEmail, setNewCustEmail] = useState('');
+  const [newCustAddress, setNewCustAddress] = useState('');
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemPrice, setNewItemPrice] = useState('199');
+
+  // Confirmation Modal for New Order
+  const [confirmOrderModalVisible, setConfirmOrderModalVisible] = useState(false);
+  const [pendingDraftOrder, setPendingDraftOrder] = useState<Order | null>(null);
+
+  // Interactive Popup Modal 2: Add New Line Item Form
+  const [addItemModalVisible, setAddItemModalVisible] = useState(false);
+  const [lineItemNameInput, setLineItemNameInput] = useState('');
+  const [lineItemQtyInput, setLineItemQtyInput] = useState('1');
+  const [lineItemPriceInput, setLineItemPriceInput] = useState('49');
+
   // Screen Transition Animations
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -130,33 +149,15 @@ export default function App() {
   const handleTabChange = (nextTab: 'list' | 'detail' | 'flow' | 'profile') => {
     if (nextTab === activeTab) return;
     
-    // Fade out & slide down slightly
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 120,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 10,
-        duration: 120,
-        useNativeDriver: true,
-      })
+      Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 10, duration: 120, useNativeDriver: true })
     ]).start(() => {
       setActiveTab(nextTab);
       slideAnim.setValue(-10);
-      // Fade in & slide up into place
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 220,
-          useNativeDriver: true,
-        })
+        Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 220, useNativeDriver: true })
       ]).start();
     });
   };
@@ -164,20 +165,39 @@ export default function App() {
   // Handle Physical Android Hardware Back Button
   useEffect(() => {
     const backAction = () => {
+      if (newOrderModalVisible) {
+        setNewOrderModalVisible(false);
+        return true;
+      }
+      if (confirmOrderModalVisible) {
+        setConfirmOrderModalVisible(false);
+        return true;
+      }
+      if (addItemModalVisible) {
+        setAddItemModalVisible(false);
+        return true;
+      }
       if (coolModalVisible) {
         setCoolModalVisible(false);
         return true;
       }
       if (activeTab !== 'list') {
-        setActiveTab('list');
+        handleTabChange('list');
         return true;
       }
-      return false; // Allow exit only when on main list screen
+      return false;
     };
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => backHandler.remove();
-  }, [activeTab, coolModalVisible]);
+  }, [activeTab, coolModalVisible, newOrderModalVisible, confirmOrderModalVisible, addItemModalVisible]);
+
+  const triggerCoolPopup = (title: string, message: string, badge = '✨ ACTION SUCCESS') => {
+    setCoolModalTitle(title);
+    setCoolModalMessage(message);
+    setCoolModalBadge(badge);
+    setCoolModalVisible(true);
+  };
 
   // Filtering
   const filteredOrders = orders.filter((o) => {
@@ -205,41 +225,88 @@ export default function App() {
     triggerCoolPopup('Status Updated!', `Order #${orderId} state transitioned to ${newStatus.toUpperCase()} seamlessly.`, '⚡ OPTIMISTIC MUTATION');
   };
 
-  // Action 2: Add New Order Item
-  const addItemToSelectedOrder = () => {
-    const newItem: OrderItem = { name: 'Express Freight Protection', qty: 1, price: 49.00 };
+  // Step 1: Submit Form -> Show Confirmation Window
+  const handleFormSubmitNewOrder = () => {
+    if (!newCustName.trim()) {
+      alert('Please enter a customer name');
+      return;
+    }
+    const num = Math.floor(1000 + Math.random() * 9000);
+    const itemP = parseFloat(newItemPrice) || 99;
+    const draft: Order = {
+      id: `${Date.now()}`,
+      orderNumber: `ORD-2026-${num}`,
+      customerName: newCustName.trim(),
+      email: newCustEmail.trim() || 'client@express.com',
+      phone: '+1 (555) 900-1122',
+      address: newCustAddress.trim() || 'Logistics Bay 4',
+      totalAmount: itemP,
+      status: 'pending',
+      priority: 'high',
+      createdAt: 'Just Now',
+      items: [{ name: newItemName.trim() || 'Standard Logistics Package', qty: 1, price: itemP }]
+    };
+
+    setPendingDraftOrder(draft);
+    setNewOrderModalVisible(false);
+    setConfirmOrderModalVisible(true);
+  };
+
+  // Step 2: Confirm Order -> Add to Order List
+  const confirmNewOrderSubmission = () => {
+    if (!pendingDraftOrder) return;
+    setOrders([pendingDraftOrder, ...orders]);
+    setSelectedOrder(pendingDraftOrder);
+    setConfirmOrderModalVisible(false);
+    
+    if (!isOnline) {
+      setSyncQueue((q) => [...q, { id: `${Date.now()}`, desc: `Create Order #${pendingDraftOrder.orderNumber}` }]);
+    }
+    
+    // Clear Form Inputs
+    setNewCustName('');
+    setNewCustEmail('');
+    setNewCustAddress('');
+    setNewItemName('');
+
+    handleTabChange('list');
+    triggerCoolPopup('Order Confirmed!', `Order ${pendingDraftOrder.orderNumber} successfully added to the active orders list!`, '🎉 ORDER CREATED');
+  };
+
+  // Add Item with Custom Name & Quantity
+  const handleAddNewItemSubmit = () => {
+    if (!lineItemNameInput.trim()) {
+      alert('Please enter an item name');
+      return;
+    }
+    const qty = parseInt(lineItemQtyInput) || 1;
+    const price = parseFloat(lineItemPriceInput) || 49;
+
+    const newItem: OrderItem = {
+      name: lineItemNameInput.trim(),
+      qty: qty,
+      price: price
+    };
+
     const updatedItems = [...selectedOrder.items, newItem];
-    const newTotal = selectedOrder.totalAmount + 49.00;
+    const newTotal = selectedOrder.totalAmount + (price * qty);
     const updatedOrder = { ...selectedOrder, items: updatedItems, totalAmount: newTotal };
 
     setSelectedOrder(updatedOrder);
     setOrders((prev) => prev.map((o) => (o.id === selectedOrder.id ? updatedOrder : o)));
-    triggerCoolPopup('Item Appended', 'Express Freight Protection ($49.00) successfully added to line items.', '📦 ITEM ADDED');
+    setAddItemModalVisible(false);
+
+    // Reset Inputs
+    setLineItemNameInput('');
+    setLineItemQtyInput('1');
+
+    triggerCoolPopup('Item Added', `${newItem.name} (x${qty}) added to order subtotal.`, '📦 ITEM ADDED');
   };
 
-  // Action 3: Create New Fast Draft Order
-  const createNewDraftOrder = () => {
-    const newId = `${orders.length + 1}`;
-    const newOrd: Order = {
-      id: newId,
-      orderNumber: `ORD-2026-990${newId}`,
-      customerName: 'New Client Express',
-      email: 'express@client.com',
-      phone: '+1 (555) 000-1122',
-      address: '77 Logistics Blvd, Suite 10',
-      totalAmount: 599.00,
-      status: 'pending',
-      priority: 'high',
-      createdAt: 'Just Now',
-      items: [{ name: 'Standard Maintenance Package', qty: 1, price: 599.00 }]
-    };
-    setOrders([newOrd, ...orders]);
-    setSelectedOrder(newOrd);
-    setActiveTab('detail');
-    if (!isOnline) {
-      setSyncQueue((q) => [...q, { id: `${Date.now()}`, desc: `Create Order #${newOrd.orderNumber}` }]);
-    }
-    triggerCoolPopup('Order Draft Created', `New order ${newOrd.orderNumber} added to logistics pipeline.`, '🚀 DRAFT CREATED');
+  // Save Profile Changes
+  const handleSaveProfile = () => {
+    setIsEditingProfile(false);
+    triggerCoolPopup('Profile Updated', 'Your logistics profile details have been saved successfully.', '👤 PROFILE SAVED');
   };
 
   // Action 4: Flush Sync Queue
@@ -290,7 +357,7 @@ export default function App() {
           <ScrollView style={styles.scrollContent}>
             <View style={styles.titleRow}>
               <Text style={styles.screenHeading}>Order Management</Text>
-              <TouchableOpacity style={styles.addOrderBtn} onPress={createNewDraftOrder}>
+              <TouchableOpacity style={styles.addOrderBtn} onPress={() => setNewOrderModalVisible(true)}>
                 <Text style={styles.addOrderBtnText}>+ New Order</Text>
               </TouchableOpacity>
             </View>
@@ -378,7 +445,7 @@ export default function App() {
 
               <View style={styles.titleRow}>
                 <Text style={styles.sectionHeading}>Line Items</Text>
-                <TouchableOpacity style={styles.smallBtn} onPress={addItemToSelectedOrder}>
+                <TouchableOpacity style={styles.smallBtn} onPress={() => setAddItemModalVisible(true)}>
                   <Text style={styles.smallBtnText}>+ Add Item</Text>
                 </TouchableOpacity>
               </View>
@@ -440,17 +507,61 @@ export default function App() {
           <ScrollView style={styles.scrollContent}>
             <Text style={styles.screenHeading}>Profile & Sync Settings</Text>
 
+            {/* Editable Profile Card */}
             <View style={styles.profileCard}>
               <View style={styles.profileHeader}>
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarText}>DH</Text>
                 </View>
-                <View>
-                  <Text style={styles.profileName}>Digital Heroes Officer</Text>
-                  <Text style={styles.profileRole}>Lead Logistics Manager</Text>
-                  <Text style={styles.profileEmail}>officer@digitalheroes.com</Text>
+                <View style={{ flex: 1 }}>
+                  {isEditingProfile ? (
+                    <View style={{ gap: 6 }}>
+                      <TextInput
+                        style={styles.formInputSmall}
+                        value={profileName}
+                        onChangeText={setProfileName}
+                        placeholder="Officer Name"
+                        placeholderTextColor="#64748b"
+                      />
+                      <TextInput
+                        style={styles.formInputSmall}
+                        value={profileRole}
+                        onChangeText={setProfileRole}
+                        placeholder="Logistics Role"
+                        placeholderTextColor="#64748b"
+                      />
+                      <TextInput
+                        style={styles.formInputSmall}
+                        value={profileEmail}
+                        onChangeText={setProfileEmail}
+                        placeholder="Email Address"
+                        placeholderTextColor="#64748b"
+                      />
+                    </View>
+                  ) : (
+                    <>
+                      <Text style={styles.profileName}>{profileName}</Text>
+                      <Text style={styles.profileRole}>{profileRole}</Text>
+                      <Text style={styles.profileEmail}>{profileEmail}</Text>
+                    </>
+                  )}
                 </View>
               </View>
+
+              <TouchableOpacity
+                style={[styles.editProfileBtn, isEditingProfile && styles.saveProfileBtn]}
+                onPress={() => {
+                  if (isEditingProfile) {
+                    handleSaveProfile();
+                  } else {
+                    setIsEditingProfile(true);
+                  }
+                }}
+              >
+                <Text style={styles.editProfileBtnText}>
+                  {isEditingProfile ? 'Save Profile Details' : 'Edit Profile'}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.settingsBox}>
@@ -523,7 +634,162 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* COOL GLASSMORPHISM POPUP MODAL */}
+      {/* POPUP MODAL 1: ADD NEW ORDER FORM */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={newOrderModalVisible}
+        onRequestClose={() => setNewOrderModalVisible(false)}
+      >
+        <View style={styles.coolModalOverlay}>
+          <View style={styles.formModalCard}>
+            <Text style={styles.modalHeading}>Create New Order</Text>
+
+            <TextInput
+              style={styles.formInput}
+              placeholder="Customer Name *"
+              placeholderTextColor="#64748b"
+              value={newCustName}
+              onChangeText={setNewCustName}
+            />
+            <TextInput
+              style={styles.formInput}
+              placeholder="Customer Email"
+              placeholderTextColor="#64748b"
+              value={newCustEmail}
+              onChangeText={setNewCustEmail}
+            />
+            <TextInput
+              style={styles.formInput}
+              placeholder="Dispatch Address"
+              placeholderTextColor="#64748b"
+              value={newCustAddress}
+              onChangeText={setNewCustAddress}
+            />
+            <TextInput
+              style={styles.formInput}
+              placeholder="Initial Item Name"
+              placeholderTextColor="#64748b"
+              value={newItemName}
+              onChangeText={setNewItemName}
+            />
+            <TextInput
+              style={styles.formInput}
+              placeholder="Price ($)"
+              placeholderTextColor="#64748b"
+              keyboardType="numeric"
+              value={newItemPrice}
+              onChangeText={setNewItemPrice}
+            />
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.cancelModalBtn}
+                onPress={() => setNewOrderModalVisible(false)}
+              >
+                <Text style={styles.cancelModalBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.submitModalBtn}
+                onPress={handleFormSubmitNewOrder}
+              >
+                <Text style={styles.submitModalBtnText}>Proceed to Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* CONFIRMATION POPUP MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={confirmOrderModalVisible}
+        onRequestClose={() => setConfirmOrderModalVisible(false)}
+      >
+        <View style={styles.coolModalOverlay}>
+          <View style={styles.coolModalCard}>
+            <View style={styles.coolModalBadgeContainer}>
+              <Text style={styles.coolModalBadgeText}>⚠️ CONFIRM ORDER</Text>
+            </View>
+
+            <Text style={styles.coolModalTitle}>Confirm Submission?</Text>
+            <Text style={styles.coolModalMessage}>
+              Create {pendingDraftOrder?.orderNumber} for {pendingDraftOrder?.customerName} (${pendingDraftOrder?.totalAmount.toFixed(2)})?
+            </Text>
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.cancelModalBtn}
+                onPress={() => setConfirmOrderModalVisible(false)}
+              >
+                <Text style={styles.cancelModalBtnText}>Edit Details</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.submitModalBtn}
+                onPress={confirmNewOrderSubmission}
+              >
+                <Text style={styles.submitModalBtnText}>Confirm & Add to List</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* POPUP MODAL 2: ADD NEW ITEM FORM */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={addItemModalVisible}
+        onRequestClose={() => setAddItemModalVisible(false)}
+      >
+        <View style={styles.coolModalOverlay}>
+          <View style={styles.formModalCard}>
+            <Text style={styles.modalHeading}>Add New Item to Order</Text>
+
+            <TextInput
+              style={styles.formInput}
+              placeholder="Item Name (e.g. Protection Shield) *"
+              placeholderTextColor="#64748b"
+              value={lineItemNameInput}
+              onChangeText={setLineItemNameInput}
+            />
+            <TextInput
+              style={styles.formInput}
+              placeholder="Quantity (e.g. 2)"
+              placeholderTextColor="#64748b"
+              keyboardType="numeric"
+              value={lineItemQtyInput}
+              onChangeText={setLineItemQtyInput}
+            />
+            <TextInput
+              style={styles.formInput}
+              placeholder="Unit Price ($)"
+              placeholderTextColor="#64748b"
+              keyboardType="numeric"
+              value={lineItemPriceInput}
+              onChangeText={setLineItemPriceInput}
+            />
+
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.cancelModalBtn}
+                onPress={() => setAddItemModalVisible(false)}
+              >
+                <Text style={styles.cancelModalBtnText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.submitModalBtn}
+                onPress={handleAddNewItemSubmit}
+              >
+                <Text style={styles.submitModalBtnText}>Add Item</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* COOL GLASSMORPHISM NOTIFICATION MODAL */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -869,6 +1135,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+    gap: 12,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -901,6 +1168,31 @@ const styles = StyleSheet.create({
   profileEmail: {
     color: '#64748b',
     fontSize: 12,
+  },
+  formInputSmall: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    color: '#fff',
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  editProfileBtn: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  saveProfileBtn: {
+    backgroundColor: '#10b981',
+  },
+  editProfileBtnText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
   },
   settingsBox: {
     backgroundColor: 'rgba(18, 26, 43, 0.9)',
@@ -990,6 +1282,62 @@ const styles = StyleSheet.create({
     color: '#818cf8',
     fontSize: 12,
     fontWeight: '900',
+  },
+
+  /* FORM MODAL STYLES */
+  formModalCard: {
+    width: '100%',
+    backgroundColor: '#121a2b',
+    borderRadius: 24,
+    padding: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(99, 102, 241, 0.4)',
+    gap: 12,
+  },
+  modalHeading: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 6,
+  },
+  formInput: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#fff',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  modalBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  cancelModalBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelModalBtnText: {
+    color: '#cbd5e1',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  submitModalBtn: {
+    flex: 1,
+    backgroundColor: '#6366f1',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  submitModalBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
   },
 
   /* COOL POPUP MODAL STYLES */
