@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,7 +9,8 @@ import {
   StatusBar,
   TextInput,
   Linking,
-  Alert
+  Modal,
+  BackHandler
 } from 'react-native';
 
 interface OrderItem {
@@ -109,6 +110,30 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(true);
   const [syncQueue, setSyncQueue] = useState<{ id: string; desc: string }[]>([]);
 
+  // Cool Glass Modal Popup State
+  const [coolModalVisible, setCoolModalVisible] = useState(false);
+  const [coolModalTitle, setCoolModalTitle] = useState('');
+  const [coolModalMessage, setCoolModalMessage] = useState('');
+  const [coolModalBadge, setCoolModalBadge] = useState('✨ ACTION SUCCESS');
+
+  // Handle Physical Android Hardware Back Button
+  useEffect(() => {
+    const backAction = () => {
+      if (coolModalVisible) {
+        setCoolModalVisible(false);
+        return true;
+      }
+      if (activeTab !== 'list') {
+        setActiveTab('list');
+        return true;
+      }
+      return false; // Allow exit only when on main list screen
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [activeTab, coolModalVisible]);
+
   // Filtering
   const filteredOrders = orders.filter((o) => {
     const matchesFilter = filterStatus === 'all' || o.status === filterStatus;
@@ -132,6 +157,7 @@ export default function App() {
         { id: `${Date.now()}`, desc: `Update #${orderId} status to ${newStatus.toUpperCase()}` }
       ]);
     }
+    triggerCoolPopup('Status Updated!', `Order #${orderId} state transitioned to ${newStatus.toUpperCase()} seamlessly.`, '⚡ OPTIMISTIC MUTATION');
   };
 
   // Action 2: Add New Order Item
@@ -143,7 +169,7 @@ export default function App() {
 
     setSelectedOrder(updatedOrder);
     setOrders((prev) => prev.map((o) => (o.id === selectedOrder.id ? updatedOrder : o)));
-    Alert.alert('Item Added', 'Express Freight Protection ($49.00) added to order.');
+    triggerCoolPopup('Item Appended', 'Express Freight Protection ($49.00) successfully added to line items.', '📦 ITEM ADDED');
   };
 
   // Action 3: Create New Fast Draft Order
@@ -168,12 +194,14 @@ export default function App() {
     if (!isOnline) {
       setSyncQueue((q) => [...q, { id: `${Date.now()}`, desc: `Create Order #${newOrd.orderNumber}` }]);
     }
+    triggerCoolPopup('Order Draft Created', `New order ${newOrd.orderNumber} added to logistics pipeline.`, '🚀 DRAFT CREATED');
   };
 
   // Action 4: Flush Sync Queue
   const flushSyncQueue = () => {
+    const count = syncQueue.length;
     setSyncQueue([]);
-    Alert.alert('Sync Complete', 'All offline queue mutations synchronized with server!');
+    triggerCoolPopup('Sync Completed', `Flushed and synchronized ${count} offline mutation payload(s) with remote server!`, '🔄 AUTO-SYNC');
   };
 
   return (
@@ -441,6 +469,33 @@ export default function App() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* COOL GLASSMORPHISM POPUP MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={coolModalVisible}
+        onRequestClose={() => setCoolModalVisible(false)}
+      >
+        <View style={styles.coolModalOverlay}>
+          <View style={styles.coolModalCard}>
+            <View style={styles.coolModalBadgeContainer}>
+              <Text style={styles.coolModalBadgeText}>{coolModalBadge}</Text>
+            </View>
+
+            <Text style={styles.coolModalTitle}>{coolModalTitle}</Text>
+            <Text style={styles.coolModalMessage}>{coolModalMessage}</Text>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              style={styles.coolModalBtn}
+              onPress={() => setCoolModalVisible(false)}
+            >
+              <Text style={styles.coolModalBtnText}>Awesome, Got It!</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -465,7 +520,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingTop: 20,
+    paddingBottom: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },
@@ -881,5 +937,68 @@ const styles = StyleSheet.create({
     color: '#818cf8',
     fontSize: 12,
     fontWeight: '900',
+  },
+
+  /* COOL POPUP MODAL STYLES */
+  coolModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  coolModalCard: {
+    width: '100%',
+    backgroundColor: '#121a2b',
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1.5,
+    borderColor: 'rgba(99, 102, 241, 0.4)',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 25,
+  },
+  coolModalBadgeContainer: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.4)',
+  },
+  coolModalBadgeText: {
+    color: '#818cf8',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  coolModalTitle: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  coolModalMessage: {
+    color: '#cbd5e1',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  coolModalBtn: {
+    backgroundColor: '#6366f1',
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  coolModalBtnText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '800',
   },
 });
