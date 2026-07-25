@@ -113,6 +113,16 @@ export default function App() {
 
   // Cool Glass Modal Popup State
   const [coolModalVisible, setCoolModalVisible] = useState(false);
+  const [coolModalTitle, setCoolModalTitle] = useState('');
+  const [coolModalMessage, setCoolModalMessage] = useState('');
+  const [coolModalBadge, setCoolModalBadge] = useState('✨ ACTION SUCCESS');
+
+  const triggerCoolPopup = (title: string, message: string, badge = '✨ ACTION SUCCESS') => {
+    setCoolModalTitle(title);
+    setCoolModalMessage(message);
+    setCoolModalBadge(badge);
+    setCoolModalVisible(true);
+  };
   // Screen Transition Animations
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -456,7 +466,7 @@ export default function App() {
             </TouchableOpacity>
           </ScrollView>
         )}
-      </View>
+      </Animated.View>
 
       {/* FOOTER CREDIT */}
       <View style={styles.footerCredit}>
