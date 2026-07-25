@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,7 +10,8 @@ import {
   TextInput,
   Linking,
   Modal,
-  BackHandler
+  BackHandler,
+  Animated
 } from 'react-native';
 
 interface OrderItem {
@@ -112,9 +113,43 @@ export default function App() {
 
   // Cool Glass Modal Popup State
   const [coolModalVisible, setCoolModalVisible] = useState(false);
-  const [coolModalTitle, setCoolModalTitle] = useState('');
-  const [coolModalMessage, setCoolModalMessage] = useState('');
-  const [coolModalBadge, setCoolModalBadge] = useState('✨ ACTION SUCCESS');
+  // Screen Transition Animations
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const handleTabChange = (nextTab: 'list' | 'detail' | 'flow' | 'profile') => {
+    if (nextTab === activeTab) return;
+    
+    // Fade out & slide down slightly
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 120,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 10,
+        duration: 120,
+        useNativeDriver: true,
+      })
+    ]).start(() => {
+      setActiveTab(nextTab);
+      slideAnim.setValue(-10);
+      // Fade in & slide up into place
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        })
+      ]).start();
+    });
+  };
 
   // Handle Physical Android Hardware Back Button
   useEffect(() => {
@@ -230,8 +265,16 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* MAIN SCREEN VIEW */}
-      <View style={styles.mainBody}>
+      {/* MAIN ANIMATED SCREEN VIEW */}
+      <Animated.View
+        style={[
+          styles.mainBody,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+          }
+        ]}
+      >
         {/* SCREEN 1: LIST WITH FILTERING */}
         {activeTab === 'list' && (
           <ScrollView style={styles.scrollContent}>
@@ -275,7 +318,7 @@ export default function App() {
                 style={styles.card}
                 onPress={() => {
                   setSelectedOrder(item);
-                  setActiveTab('detail');
+                  handleTabChange('detail');
                 }}
               >
                 <View style={styles.cardHeader}>
@@ -428,7 +471,7 @@ export default function App() {
         <TouchableOpacity
           activeOpacity={0.7}
           style={[styles.bottomTabItem, activeTab === 'list' && styles.bottomTabActive]}
-          onPress={() => setActiveTab('list')}
+          onPress={() => handleTabChange('list')}
         >
           <Text style={styles.tabIcon}>📋</Text>
           <Text style={[styles.bottomTabText, activeTab === 'list' && styles.bottomTabTextActive]}>
@@ -439,7 +482,7 @@ export default function App() {
         <TouchableOpacity
           activeOpacity={0.7}
           style={[styles.bottomTabItem, activeTab === 'detail' && styles.bottomTabActive]}
-          onPress={() => setActiveTab('detail')}
+          onPress={() => handleTabChange('detail')}
         >
           <Text style={styles.tabIcon}>🔍</Text>
           <Text style={[styles.bottomTabText, activeTab === 'detail' && styles.bottomTabTextActive]}>
@@ -450,7 +493,7 @@ export default function App() {
         <TouchableOpacity
           activeOpacity={0.7}
           style={[styles.bottomTabItem, activeTab === 'flow' && styles.bottomTabActive]}
-          onPress={() => setActiveTab('flow')}
+          onPress={() => handleTabChange('flow')}
         >
           <Text style={styles.tabIcon}>⚡</Text>
           <Text style={[styles.bottomTabText, activeTab === 'flow' && styles.bottomTabTextActive]}>
@@ -461,7 +504,7 @@ export default function App() {
         <TouchableOpacity
           activeOpacity={0.7}
           style={[styles.bottomTabItem, activeTab === 'profile' && styles.bottomTabActive]}
-          onPress={() => setActiveTab('profile')}
+          onPress={() => handleTabChange('profile')}
         >
           <Text style={styles.tabIcon}>⚙️</Text>
           <Text style={[styles.bottomTabText, activeTab === 'profile' && styles.bottomTabTextActive]}>
