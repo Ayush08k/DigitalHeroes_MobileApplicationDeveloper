@@ -6,6 +6,8 @@ A production-grade, 4-screen Offline-First Order Management application with 90F
 
 ## 🚀 Live Demo & Build Instructions
 
+- **Direct Application Download (APK/Build)**: [Download APK / Build File](https://drive.google.com/file/d/1NNWeVHWIy6U2YHp-u-ArQ0pcENvodpQB/view?usp=sharing)
+
 ### 1. Installation
 ```bash
 cd Task_A

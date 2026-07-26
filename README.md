@@ -7,6 +7,7 @@ Production-grade Offline-First Mobile Application and Code Audit / Technical Gov
 ## 🔗 Submission Links & Deliverables
 
 - **Public GitHub Repository**: [https://github.com/Ayush08k/DigitalHeroes_MobileApplicationDeveloper](https://github.com/Ayush08k/DigitalHeroes_MobileApplicationDeveloper)
+- **Direct Application Download (APK/Build)**: [Download APK / Build File](https://drive.google.com/file/d/1NNWeVHWIy6U2YHp-u-ArQ0pcENvodpQB/view?usp=sharing)
 - **Expo Mobile App URL**: `exp://192.168.1.5:8099` (or `exp://192.168.1.5:8105`)
 - **Required Credit**: Built for [Digital Heroes Training Task](https://digitalheroesco.com)
 
